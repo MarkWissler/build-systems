@@ -5,22 +5,19 @@ var gulp = require('gulp'),
     watch = require('gulp-watch'),
     sourcemaps = require('gulp-sourcemaps'),
     minifyCSS = require('gulp-minify-css'),
+    nodemon = require('gulp-nodemon'),
     livereload = require('gulp-livereload'),
     del = require('del');
 
 var paths = {
   jsSrc: [
-    'path/to/a/file.js',
-    'oh/nice/globs/*.js',
-    'whoa/dude/**/*.js'
+    'src/js/*.js'
   ],
   cssSrc: [
-    'path/to/css/file.css',
-    'css/stylin/on/*.css',
-    'path/**/*.css'
+    'src/css/*.css'
   ],
   others: [
-    'path/to/some/html/*.html'
+    'src/templates/*.html'
   ]
 };
 
@@ -31,32 +28,37 @@ gulp.task('clean', function(cb) {
 gulp.task('scripts', [], function() {
   return gulp.src(paths.jsSrc)
     .pipe(sourcemaps.init())
-    .pipe(concat('main.js'))
+    .pipe(uglify({
+      mangle: false
+    }))
+    .pipe(concat('dist.min.js'))
+    .pipe(sourcemaps.write('./map', {
+      'includeContent': true,
+      'sourceRoot': 'src/js/'
+    }))
     .pipe(gulp.dest('dist'))
-    .pipe(rename('main.min.js'))
-    .pipe(uglify({mangle: false}))
-    .pipe(sourcemaps.write())
-    .pipe(gulp.dest('dist'))
-    .pipe(livereload());
 });
 
 gulp.task('css', [], function() {
   return gulp.src(paths.cssSrc)
     .pipe(sourcemaps.init())
-      .pipe(concat('stylin.css'))
-      .pipe(gulp.dest('dist'))
-      .pipe(rename('stylin.min.css'))
-      .pipe(minifyCSS())
-    .pipe(sourcemaps.write())
+    .pipe(minifyCSS())
+    .pipe(concat('dist.min.css'))
+    .pipe(sourcemaps.write('./map', {
+      'includeContent': true,
+      'sourceRoot': 'src/css/'
+    }))
     .pipe(gulp.dest('dist'))
-    .pipe(livereload());
 });
 
-gulp.task('dev', function() {
-  livereload.listen();
-  gulp.watch(paths.jsSrc, ['default']);
-  gulp.watch(paths.cssSrc, ['default']);
-  gulp.watch(paths.others).on('change', livereload.changed);
+// Rerun gulp when a file changes
+gulp.task('dev', ['default'], function() {
+    gulp.watch(paths.jsSrc, ['default']);
+    gulp.watch(paths.cssSrc, ['default']);
+    // Trigger livereload only when loadable assets are changed (new images, html updated.)
+    gulp.watch(paths.others).on('change', livereload.changed);
+    gulp.watch(['dist/*']).on('change', livereload.changed);
 });
 
+// The default task (called when you run `gulp` from cli)
 gulp.task('default', ['clean', 'scripts', 'css']);
